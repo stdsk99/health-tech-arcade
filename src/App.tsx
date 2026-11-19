@@ -1,75 +1,183 @@
-import { useState } from 'react';
-import { Activity, HeartPulse, ScanLine, Wrench, Trophy, ArrowLeft, Sparkles, Clock3, RotateCcw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Activity, ArrowRight, Award, Brain, CheckCircle2, Clock3, Dices, HeartPulse, Lightbulb, Map, RotateCcw, ShieldPlus, Sparkles, Star, Trophy, Wrench, XCircle } from 'lucide-react';
 
-type GameId = 'er' | 'body' | 'builder';
-const games = [
-  { id: 'er' as const, title: 'ER HERO', subtitle: 'ภารกิจกู้ชีพ', desc: 'เลือกเครื่องมือแพทย์ให้เหมาะกับสถานการณ์', icon: Activity, tag: 'DECISION ARCADE', art: '🚑' },
-  { id: 'body' as const, title: 'BODY SCANNER', subtitle: 'ไขปริศนาร่างกาย', desc: 'จับคู่โจทย์การตรวจกับเทคโนโลยีภาพวินิจฉัย', icon: ScanLine, tag: 'MEDICAL MYSTERY', art: '🧬' },
-  { id: 'builder' as const, title: 'MEDTECH BUILDER', subtitle: 'วิศวกรเครื่องมือแพทย์', desc: 'เรียนรู้ชิ้นส่วนสำคัญของเครื่องมือแพทย์', icon: Wrench, tag: 'ENGINEERING PUZZLE', art: '🛠️' }
+type Zone = 'ER HERO' | 'BODY SCANNER' | 'MEDTECH ENGINEER' | 'INNOVATION LAB';
+type TileKind = 'start' | 'knowledge' | 'mission' | 'bonus' | 'event' | 'challenge' | 'final';
+type Question = { question: string; options: string[]; answer: number; explain: string; zone: Zone };
+type Tile = { id: number; kind: TileKind; zone: Zone };
+type Phase = 'home' | 'playing' | 'result';
+type Feedback = { title: string; body: string; correct?: boolean; points?: number; answer?: string };
+
+const zones: Zone[] = ['ER HERO', 'BODY SCANNER', 'MEDTECH ENGINEER', 'INNOVATION LAB'];
+const zoneIcons = [Activity, Brain, Wrench, Lightbulb];
+const zoneColors = ['#ff8b72', '#71baff', '#b79aff', '#65d9b4'];
+const questions: Question[] = [
+  { zone:'ER HERO', question:'อุปกรณ์ใดใช้วัดความอิ่มตัวของออกซิเจนในเลือด (SpO₂)?', options:['ECG','Pulse Oximeter','เครื่องวัดความดัน','Thermometer'], answer:1, explain:'Pulse Oximeter ใช้แสงสีแดงและอินฟราเรดประเมินค่า SpO₂ และชีพจร' },
+  { zone:'ER HERO', question:'หากต้องการบันทึกคลื่นไฟฟ้าหัวใจ ควรเลือกอุปกรณ์ใด?', options:['ECG','Ultrasound','Spirometer','Infusion Pump'], answer:0, explain:'ECG บันทึกกิจกรรมทางไฟฟ้าของหัวใจผ่านขั้วไฟฟ้าที่ติดบนร่างกาย' },
+  { zone:'ER HERO', question:'เครื่องมือใดใช้วัดความดันโลหิต?', options:['Defibrillator','Patient Monitor','Blood Pressure Monitor','Pulse Oximeter'], answer:2, explain:'Blood Pressure Monitor ใช้วัดค่าความดันโลหิต เช่น Systolic และ Diastolic' },
+  { zone:'BODY SCANNER', question:'เทคโนโลยีใดใช้รังสีเอกซ์สร้างภาพกระดูก?', options:['MRI','Ultrasound','X-ray','ECG'], answer:2, explain:'X-ray ใช้รังสีเอกซ์สร้างภาพ โดยกระดูกดูดกลืนรังสีมากกว่าเนื้อเยื่ออ่อน' },
+  { zone:'BODY SCANNER', question:'MRI ใช้หลักการใดในการสร้างภาพ?', options:['สนามแม่เหล็กและคลื่นวิทยุ','รังสีเอกซ์','คลื่นเสียงความถี่ต่ำ','แสงเลเซอร์'], answer:0, explain:'MRI ใช้สนามแม่เหล็กแรงสูงและคลื่นวิทยุ ไม่ใช้รังสีเอกซ์' },
+  { zone:'BODY SCANNER', question:'ต้องการดูภาพอวัยวะภายในแบบเรียลไทม์โดยใช้คลื่นเสียง ควรเลือกอะไร?', options:['CT Scan','Ultrasound','X-ray','Mammography'], answer:1, explain:'Ultrasound ใช้คลื่นเสียงความถี่สูงสะท้อนกลับจากเนื้อเยื่อเพื่อสร้างภาพ' },
+  { zone:'MEDTECH ENGINEER', question:'ชิ้นส่วนใดทำหน้าที่รับแสงใน Pulse Oximeter?', options:['Photodetector','Buzzer','Relay','Motor'], answer:0, explain:'Photodetector รับแสงที่ผ่านเนื้อเยื่อ แล้วแปลงเป็นสัญญาณไฟฟ้า' },
+  { zone:'MEDTECH ENGINEER', question:'ส่วนใดประมวลผลสัญญาณจากเซนเซอร์ในอุปกรณ์?', options:['Battery','Microcontroller','ตัวเรือน','สายรัด'], answer:1, explain:'Microcontroller อ่าน ประมวลผล และควบคุมการทำงานของระบบอิเล็กทรอนิกส์' },
+  { zone:'MEDTECH ENGINEER', question:'LED ใน Pulse Oximeter มีหน้าที่หลักอย่างไร?', options:['เก็บข้อมูล','ส่งแสงผ่านเนื้อเยื่อ','แสดงผลตัวเลข','จ่ายไฟให้ระบบ'], answer:1, explain:'LED ส่งแสงสีแดงและอินฟราเรดผ่านปลายนิ้วเพื่อใช้วิเคราะห์การดูดกลืนแสง' },
+  { zone:'INNOVATION LAB', question:'เซนเซอร์ใดเหมาะกับการตรวจจับการเคลื่อนไหวและความเร่ง?', options:['MPU6050','DS18B20','Load Cell','pH Sensor'], answer:0, explain:'MPU6050 ประกอบด้วย Accelerometer และ Gyroscope สำหรับวัดความเร่งและการหมุน' },
+  { zone:'INNOVATION LAB', question:'ระบบ IoT ทางการแพทย์ควรให้ความสำคัญกับเรื่องใด?', options:['สีของอุปกรณ์เท่านั้น','ความปลอดภัยและความเป็นส่วนตัวของข้อมูล','จำนวน Animation','ความเร็วอินเทอร์เน็ตอย่างเดียว'], answer:1, explain:'ข้อมูลสุขภาพมีความอ่อนไหว ต้องออกแบบการรักษาความลับ ความถูกต้อง และการควบคุมสิทธิ์เข้าถึง' },
+  { zone:'INNOVATION LAB', question:'ข้อใดเป็นตัวอย่างการใช้ข้อมูลจากอุปกรณ์สวมใส่?', options:['ติดตามแนวโน้มชีพจร','ยืนยันโรคได้ทุกชนิด','แทนการตรวจแพทย์ทั้งหมด','วัดความดันโดยไม่ใช้เซนเซอร์'], answer:0, explain:'อุปกรณ์สวมใส่ช่วยติดตามแนวโน้มข้อมูลสุขภาพ แต่ไม่ควรใช้แทนการวินิจฉัยทางคลินิก' }
 ];
-const questions: Record<GameId, { q: string; opts: string[]; a: number; why: string }[]> = {
-  er: [
-    { q: 'ต้องการวัดความดันโลหิต ควรเลือกอุปกรณ์ใด?', opts: ['เครื่องวัดความดัน', 'Pulse Oximeter', 'ECG', 'เครื่องวัดอุณหภูมิ'], a: 0, why: 'เครื่องวัดความดันใช้วัดค่า Systolic และ Diastolic blood pressure' },
-    { q: 'ต้องการประเมินความอิ่มตัวของออกซิเจนในเลือด ควรใช้อุปกรณ์ใด?', opts: ['ECG', 'Pulse Oximeter', 'เครื่องวัดความดัน', 'เครื่องชั่งน้ำหนัก'], a: 1, why: 'Pulse Oximeter ใช้แสงประเมินค่า SpO₂ และชีพจร' },
-    { q: 'ต้องการบันทึกคลื่นไฟฟ้าหัวใจ ควรใช้อุปกรณ์ใด?', opts: ['Thermometer', 'Ultrasound', 'ECG', 'Glucometer'], a: 2, why: 'ECG บันทึกกิจกรรมทางไฟฟ้าของหัวใจผ่านขั้วไฟฟ้า' }
-  ],
-  body: [
-    { q: 'ต้องการตรวจภาพกระดูกเพื่อดูรอยหักเบื้องต้น เลือกเทคโนโลยีใด?', opts: ['MRI', 'X-ray', 'Ultrasound', 'ECG'], a: 1, why: 'X-ray ใช้รังสีเอกซ์สร้างภาพ โดยกระดูกดูดกลืนรังสีได้มากกว่าเนื้อเยื่ออ่อน' },
-    { q: 'ต้องการภาพสมองที่มีรายละเอียดเนื้อเยื่ออ่อนสูง โดยไม่ใช้รังสีเอกซ์ เลือกอะไร?', opts: ['MRI', 'X-ray', 'เครื่องวัดความดัน', 'Pulse Oximeter'], a: 0, why: 'MRI ใช้สนามแม่เหล็กและคลื่นวิทยุ ไม่ใช้รังสีเอกซ์' },
-    { q: 'ต้องการตรวจดูทารกในครรภ์แบบเรียลไทม์ ควรเลือกอะไร?', opts: ['CT Scan', 'ECG', 'Ultrasound', 'X-ray'], a: 2, why: 'Ultrasound ใช้คลื่นเสียงความถี่สูงสร้างภาพแบบเรียลไทม์' }
-  ],
-  builder: [
-    { q: 'Pulse Oximeter ใช้ชิ้นส่วนใดตรวจจับแสงที่ผ่านปลายนิ้ว?', opts: ['LED และ Photodetector', 'ลำโพง', 'มอเตอร์สั่น', 'เสาอากาศ Wi-Fi'], a: 0, why: 'LED ส่งแสงผ่านเนื้อเยื่อ และ Photodetector รับแสงเพื่อประมวลผล' },
-    { q: 'ส่วนใดทำหน้าที่ประมวลผลสัญญาณจากเซนเซอร์?', opts: ['ตัวเรือน', 'ไมโครคอนโทรลเลอร์', 'สายคล้อง', 'ปุ่มเปิดเครื่อง'], a: 1, why: 'ไมโครคอนโทรลเลอร์อ่านและประมวลผลสัญญาณจากวงจรเซนเซอร์' },
-    { q: 'ส่วนใดใช้แสดงค่า SpO₂ และชีพจรให้ผู้ใช้เห็น?', opts: ['หน้าจอแสดงผล', 'แบตเตอรี่', 'คลิปหนีบ', 'เลนส์กล้อง'], a: 0, why: 'หน้าจอแสดงค่าที่ผ่านการประมวลผลแล้ว' }
-  ]
+
+const tileKinds: TileKind[] = ['start','knowledge','mission','bonus','knowledge','event','challenge','knowledge','mission','bonus','knowledge','event','challenge','knowledge','mission','bonus','knowledge','event','challenge','knowledge','mission','bonus','challenge','final'];
+const tiles: Tile[] = tileKinds.map((kind, id) => ({ id, kind, zone: zones[Math.min(3, Math.floor(Math.max(0,id-1)/6))] }));
+const kindLabels: Record<TileKind,string> = { start:'START', knowledge:'KNOWLEDGE', mission:'MISSION', bonus:'BONUS', event:'EVENT', challenge:'CHALLENGE', final:'FINAL' };
+const kindSymbols: Record<TileKind,string> = { start:'🚩', knowledge:'💡', mission:'🧩', bonus:'⭐', event:'⚡', challenge:'🔥', final:'🏆' };
+const zoneForTile = (id:number) => zones[Math.min(3,Math.floor(Math.max(0,id-1)/6))];
+const pickQuestion = (zone:Zone, used:number[]) => {
+  const candidates = questions.map((q,i)=>({q,i})).filter(x=>x.q.zone===zone && !used.includes(x.i));
+  const pool = candidates.length ? candidates : questions.map((q,i)=>({q,i})).filter(x=>x.q.zone===zone);
+  return pool[Math.floor(Math.random()*pool.length)];
 };
-type Result = { id: GameId; score: number };
+
 export default function App() {
-  const [active, setActive] = useState<GameId | null>(null);
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [results, setResults] = useState<Result[]>([]);
-  const [feedback, setFeedback] = useState(false);
-  const [sound, setSound] = useState(false);
-  const current = games.find(g => g.id === active);
-  const Icon = current?.icon ?? HeartPulse;
-  const qs = active ? questions[active] : [];
-  const q = active ? qs[step] : null;
-  const total = results.reduce((sum, r) => sum + r.score, 0);
-  const start = (id: GameId) => { setActive(id); setStep(0); setAnswers([]); setFeedback(false); };
-  const finish = (id: GameId) => {
-    const correct = answers.filter((a, i) => a === questions[id][i].a).length;
-    setResults(old => [...old.filter(r => r.id !== id), { id, score: correct * 100 + (correct === 3 ? 50 : 0) }]);
-    setActive(null); setStep(0); setAnswers([]); setFeedback(false);
+  const [phase,setPhase] = useState<Phase>('home');
+  const [position,setPosition] = useState(0);
+  const [turn,setTurn] = useState(0);
+  const [score,setScore] = useState(0);
+  const [streak,setStreak] = useState(0);
+  const [badges,setBadges] = useState<Zone[]>([]);
+  const [used,setUsed] = useState<number[]>([]);
+  const [die,setDie] = useState<number|null>(null);
+  const [rolling,setRolling] = useState(false);
+  const [question,setQuestion] = useState<Question|null>(null);
+  const [questionIndex,setQuestionIndex] = useState<number|null>(null);
+  const [feedback,setFeedback] = useState<Feedback|null>(null);
+  const [moves,setMoves] = useState<number[]>([]);
+  const [lastGain,setLastGain] = useState(0);
+  const [startedAt,setStartedAt] = useState<number>(0);
+  const [sound,setSound] = useState(false);
+
+  const currentZone = zoneForTile(position);
+  const elapsed = startedAt ? Math.max(1,Math.round((Date.now()-startedAt)/60000)) : 0;
+  const progress = Math.round((position/(tiles.length-1))*100);
+  const boardRows = useMemo(()=>Array.from({length:6},(_,row)=>Array.from({length:4},(_,col)=>{
+    const index = row%2===0 ? row*4+col : row*4+(3-col);
+    return tiles[index];
+  })),[]);
+
+  const begin = () => {
+    setPosition(0); setTurn(0); setScore(0); setStreak(0); setBadges([]); setUsed([]);
+    setDie(null); setQuestion(null); setQuestionIndex(null); setFeedback(null); setMoves([]);
+    setLastGain(0); setStartedAt(Date.now()); setPhase('playing');
   };
-  const next = () => {
-    if (!active) return;
-    if (step === 2) finish(active);
-    else { setStep(s => s + 1); setFeedback(false); }
+
+  const endGame = () => { setQuestion(null); setFeedback(null); setPhase('result'); };
+
+  const resolveTile = (next:number) => {
+    const tile = tiles[next];
+    setLastGain(0);
+    if (tile.kind==='bonus') {
+      setScore(s=>s+80); setLastGain(80); setFeedback({title:'BONUS SPACE!',body:'พบ Energy Crystal รับคะแนนพิเศษ +80 คะแนน',points:80});
+      return;
+    }
+    if (tile.kind==='event') {
+      const events = [
+        {title:'ระบบสำรองพลังงาน!',body:'จัดการพลังงานได้ดี รับคะแนนเพิ่ม +40',points:40},
+        {title:'ทีมวิจัยช่วยเหลือ!',body:'ได้รับคำใบ้จากทีมผู้เชี่ยวชาญ รับคะแนนเพิ่ม +30',points:30},
+        {title:'เส้นทางลัด!',body:'ค้นพบข้อมูลที่ช่วยให้ภารกิจง่ายขึ้น รับคะแนนเพิ่ม +50',points:50}
+      ];
+      const event=events[Math.floor(Math.random()*events.length)];
+      setScore(s=>s+event.points); setLastGain(event.points); setFeedback(event);
+      return;
+    }
+    const {q,i}=pickQuestion(tile.zone,used);
+    setQuestion(q); setQuestionIndex(i);
   };
-  const reset = () => { setResults([]); setActive(null); setStep(0); setAnswers([]); setFeedback(false); };
+
+  const roll = () => {
+    if (rolling || question || feedback || phase!=='playing') return;
+    setRolling(true);
+    window.setTimeout(()=>{
+      const value=1+Math.floor(Math.random()*4);
+      const next=Math.min(tiles.length-1,position+value);
+      setDie(value); setPosition(next); setTurn(t=>t+1); setMoves(m=>[...m,value]); setRolling(false);
+      resolveTile(next);
+    },550);
+  };
+
+  const answer = (choice:number) => {
+    if (!question || questionIndex===null) return;
+    const correct=choice===question.answer;
+    const gained=correct ? 100+(streak>=2?25:0) : 0;
+    if(correct){setScore(s=>s+gained);setStreak(s=>s+1);setLastGain(gained);setBadges(old=>old.includes(question.zone)?old:[...old,question.zone]);}
+    else {setStreak(0);setLastGain(0);}
+    setUsed(old=>[...old,questionIndex]);
+    setFeedback({title:correct?'ตอบถูกต้อง!':'ยังไม่ถูกต้อง',body:question.explain,correct,points:gained,answer:question.options[question.answer]});
+    setQuestion(null);
+  };
+
+  const continueTurn = () => {
+    if(position>=tiles.length-1 || turn>=12){endGame();return;}
+    setFeedback(null);setDie(null);
+  };
+
+  const restart = () => {setPhase('home');setPosition(0);setTurn(0);setScore(0);setStreak(0);setBadges([]);setUsed([]);setDie(null);setQuestion(null);setFeedback(null);setMoves([]);};
+
+  const tileClass = (tile:Tile,active:boolean) => 'board-tile '+tile.kind+(active?' active':'');
+  const finalBadge = badges.length===4;
+
   return <div className="app-shell">
-    <header className="topbar"><div className="brand" onClick={() => setActive(null)}><span className="brand-mark"><HeartPulse size={21}/></span><span>HEALTH TECH <b>ARCADE</b></span></div><button className="sound-btn" onClick={() => setSound(v => !v)}>เสียง: {sound ? 'เปิด' : 'ปิด'}</button></header>
+    <header className="topbar">
+      <button className="brand" onClick={restart}><span className="brand-mark"><HeartPulse size={21}/></span><span>HEALTH TECH <b>ADVENTURE</b></span></button>
+      <div className="top-actions"><span className="mode-pill">SOLO QUEST</span><button className="sound-btn" onClick={()=>setSound(v=>!v)}>{sound?'เสียงเปิด':'เสียงปิด'}</button></div>
+    </header>
     <main>
-      {active && q ? <section className="game-screen">
-        <button className="back-link" onClick={() => setActive(null)}><ArrowLeft size={16}/> กลับหน้าเกม</button>
-        <div className="game-heading"><span className="game-icon"><Icon size={25}/></span><div><div className="eyebrow">{current?.tag}</div><h1>{current?.title}</h1><p>{current?.subtitle}</p></div></div>
-        <div className="progress-row"><span>ภารกิจ {step + 1} / 3</span><span>{Math.round(((step + 1) / 3) * 100)}%</span></div><div className="progress"><i style={{ width: `${((step + 1) / 3) * 100}%` }}/></div>
-        <div className="question-card"><div className="eyebrow">YOUR MISSION</div><h2>{q.q}</h2><div className="answer-grid">{q.opts.map((option, i) => <button key={option} className={feedback && i === q.a ? 'answer correct' : feedback && answers[step] === i ? 'answer wrong' : 'answer'} onClick={() => { if (!feedback) { setAnswers(old => [...old, i]); setFeedback(true); } }} disabled={feedback}><span className="answer-letter">{String.fromCharCode(65 + i)}</span>{option}</button>)}</div>
-          {feedback && <div className={answers[step] === q.a ? 'feedback good' : 'feedback bad'}><b>{answers[step] === q.a ? 'ถูกต้อง! +100 คะแนน' : 'ยังไม่ถูกต้อง ลองเรียนรู้จากเฉลย'}</b><p>{q.why}</p><button className="primary small" onClick={next}>{step === 2 ? 'ดูผลคะแนน' : 'ภารกิจถัดไป'} →</button></div>}
-        </div><p className="disclaimer">เกมจำลองเพื่อการเรียนรู้ ไม่ใช่เครื่องมือวินิจฉัยหรือแนะนำการรักษา</p>
-      </section> : <>
-        <section className="hero"><div className="hero-copy"><div className="eyebrow"><Sparkles size={14}/> PLAY • LEARN • EXPLORE</div><h1>โลกของ <span>Health Tech</span><br/>รอให้คุณมาท้าทาย!</h1><p>3 ภารกิจสุดมันส์ ที่จะพาคุณไปรู้จักเทคโนโลยีสุขภาพ ผ่านเกมที่เล่นง่ายและได้ความรู้จริง</p><button className="primary" onClick={() => document.getElementById('missions')?.scrollIntoView({ behavior: 'smooth' })}>เริ่มภารกิจ <span>→</span></button><div className="hero-meta"><span><Clock3 size={15}/> 3–5 นาที</span><span><Trophy size={15}/> สะสมคะแนน</span><span>📱 เล่นบนมือถือได้</span></div></div>
-          <div className="hero-art"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="hero-core"><HeartPulse size={82}/><span>HEALTH<br/>TECH</span></div><div className="float-card card-a">🫀 <small>ECG</small></div><div className="float-card card-b">🧬 <small>SCAN</small></div><div className="float-card card-c">🩺 <small>MEDTECH</small></div></div>
-        </section>
-        <section id="missions" className="missions"><div className="section-title"><div><div className="eyebrow">CHOOSE YOUR MISSION</div><h2>เลือกภารกิจของคุณ</h2></div><span className="mission-count">03 MISSIONS</span></div><div className="game-grid">{games.map(g => { const GameIcon = g.icon; const done = results.find(r => r.id === g.id); return <article className="game-card" key={g.id}><div className="card-top"><span className="game-icon"><GameIcon size={27}/></span><span className="game-time"><Clock3 size={13}/> 60–90 วินาที</span></div><div className="game-art">{g.art}</div><div className="eyebrow">{g.tag}</div><h3>{g.title}</h3><h4>{g.subtitle}</h4><p>{g.desc}</p><button className={done ? 'secondary' : 'play-btn'} onClick={() => start(g.id)}>{done ? `เล่นอีกครั้ง · ${done.score} คะแนน` : 'เล่นเกมนี้ →'}</button></article>; })}</div></section>
-        <section className="score-strip"><div><div className="eyebrow">YOUR ARCADE STATUS</div><h2>ความสำเร็จของคุณ</h2><p>เล่นครบทั้ง 3 ภารกิจ เพื่อปลดล็อกคำเชิญพิเศษที่บูธ</p></div><div className="score-stats"><div><b>{results.length}/3</b><small>ภารกิจ</small></div><div><b>{total}</b><small>คะแนนรวม</small></div></div></section>
-        {results.length === 3 && <section className="reward-panel"><Trophy size={38}/><div><div className="eyebrow">ALL MISSIONS COMPLETE</div><h2>สุดยอด! คุณคือ Health Tech Explorer</h2><p>คุณทำได้ {total} คะแนน มาทำภารกิจจริงและรับของที่ระลึกที่บูธ</p></div><span className="reward-label">BOOTH REWARD</span></section>}
-        <section className="booth-cta"><div><div className="eyebrow">THE REAL EXPERIENCE IS WAITING</div><h2>เกมจบแล้ว...แต่ความสนุกยังไม่จบ!</h2><p>มาลองสัมผัสเครื่องมือแพทย์จริง ทดลองเทคโนโลยี และพบกับทีม Health Technology ที่บูธของเรา</p></div><div className="cta-symbol">🏥</div></section>
-        <section className="notice">ข้อมูลและค่าต่าง ๆ ในเกมเป็นสถานการณ์จำลองเพื่อการศึกษา ไม่ใช้แทนคำแนะนำจากบุคลากรทางการแพทย์</section>
-      </>}
+      {phase==='home' && <section className="intro">
+        <div className="hero-copy"><div className="eyebrow"><Sparkles size={14}/> DIGITAL BOARD GAME • SOLO MODE</div>
+          <h1>ออกผจญภัยในโลก<br/><span>HEALTH TECH</span></h1>
+          <p>ทอยลูกเต๋า เดินบนกระดาน ไขภารกิจเครื่องมือแพทย์ และสะสมตราความเชี่ยวชาญ เพื่อก้าวสู่ตำแหน่ง Health Tech Master</p>
+          <div className="intro-stats"><div><Clock3/><b>5–8 นาที</b><small>เวลาเล่นโดยประมาณ</small></div><div><Map/><b>24 ช่อง</b><small>เส้นทางผจญภัย</small></div><div><Trophy/><b>4 เขต</b><small>สะสม Zone Badge</small></div></div>
+          <button className="primary start-button" onClick={begin}>เริ่มการผจญภัย <ArrowRight size={18}/></button>
+          <p className="micro-note">เล่นคนเดียว • ไม่ต้องสมัครสมาชิก • รองรับมือถือ</p>
+        </div>
+        <div className="intro-board"><div className="mini-board-title">YOUR QUEST MAP <span>24 SPACES</span></div><div className="mini-path">{tiles.map((tile,i)=><span key={tile.id} className={'mini-tile '+tile.kind}>{kindSymbols[tile.kind]}</span>)}</div><div className="map-legend"><span>💡 Knowledge</span><span>🧩 Mission</span><span>⭐ Bonus</span><span>🔥 Challenge</span></div></div>
+      </section>}
+
+      {phase==='playing' && <section className="quest-layout">
+        <div className="quest-head"><div><div className="eyebrow">YOUR ADVENTURE</div><h1>Health Tech Quest</h1><p>เดินทางผ่าน 4 เขต เพื่อพิชิต Final Mission</p></div><button className="exit-btn" onClick={restart}><RotateCcw size={15}/> ออกจากเกม</button></div>
+        <div className="hud">
+          <div className="hud-item"><small>คะแนน</small><b>{score.toLocaleString('th-TH')}</b></div>
+          <div className="hud-item"><small>เทิร์น</small><b>{turn}/12</b></div>
+          <div className="hud-item"><small>ตำแหน่ง</small><b>{position+1}/24</b></div>
+          <div className="hud-item"><small>ตราความเชี่ยวชาญ</small><b>{badges.length}/4</b></div>
+        </div>
+        <div className="quest-columns">
+          <div className="board-panel">
+            <div className="board-title"><span><Map size={17}/> ADVENTURE MAP</span><span>{progress}% COMPLETE</span></div>
+            <div className="board-progress"><i style={{width:progress+'%'}}/></div>
+            <div className="board-grid">{boardRows.map((row,r)=><div className="board-row" key={r}>{row.map(tile=><div key={tile.id} className={tileClass(tile,position===tile.id)} style={{'--zone-color':zoneColors[zones.indexOf(tile.zone)]} as React.CSSProperties}>
+              <span className="tile-number">{tile.id===0?'START':tile.id===23?'FINISH':String(tile.id).padStart(2,'0')}</span><span className="tile-symbol">{kindSymbols[tile.kind]}</span>{position===tile.id&&<span className="player-token">🧑‍🚀</span>}
+            </div>)}</div>)}</div>
+            <div className="zone-legend">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z}><i style={{background:zoneColors[i]}}/><ZIcon size={13}/>{z}</span>;})}</div>
+          </div>
+          <aside className="side-panel">
+            <div className="zone-card"><div className="eyebrow">CURRENT ZONE</div><h3>{currentZone}</h3><p>{['เลือกใช้อุปกรณ์ให้เหมาะกับสถานการณ์','สำรวจเทคโนโลยีภาพวินิจฉัย','เรียนรู้ส่วนประกอบและระบบอิเล็กทรอนิกส์','ประยุกต์ความรู้สู่การสร้างนวัตกรรม'][zones.indexOf(currentZone)]}</p></div>
+            <div className="dice-card"><div className="dice-face">{rolling?'🎲':die?['⚀','⚁','⚂','⚃'][die-1]:'🎲'}</div><p>{rolling?'กำลังทอยลูกเต๋า...':die?'ทอยได้ '+die+' ช่อง':'พร้อมออกเดินทาง?'}</p><button className="primary roll-button" onClick={roll} disabled={rolling||!!question||!!feedback}>{rolling?'กำลังทอย...':'ทอยลูกเต๋า'} <Dices size={18}/></button></div>
+            <div className="badge-card"><div className="eyebrow">ZONE BADGES</div><div className="badge-list">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z} className={badges.includes(z)?'earned':''}><ZIcon size={16}/><small>{z}</small>{badges.includes(z)&&<CheckCircle2 size={13}/>}</span>;})}</div></div>
+          </aside>
+        </div>
+        {question && <div className="modal-backdrop"><div className="mission-modal"><div className="modal-top"><span className="eyebrow"><Sparkles size={13}/> {question.zone} • MISSION</span><span className="challenge-label">{tiles[position].kind.toUpperCase()}</span></div><h2>{question.question}</h2><div className="option-list">{question.options.map((opt,i)=><button key={opt} className="option-button" onClick={()=>answer(i)}><b>{String.fromCharCode(65+i)}</b>{opt}<ArrowRight size={15}/></button>)}</div><p className="modal-note">ตอบถูก รับ 100 คะแนน • ตอบผิดจะได้รับคำอธิบายเพื่อเรียนรู้</p></div></div>}
+        {feedback && <div className="modal-backdrop"><div className="feedback-modal"><div className={'feedback-icon '+(feedback.correct===false?'incorrect':'')}>{feedback.correct===false?<XCircle size={30}/>:feedback.points?<Star size={30}/>:<CheckCircle2 size={30}/>}</div><div className="eyebrow">QUEST UPDATE</div><h2>{feedback.title}</h2><p>{feedback.body}</p>{feedback.answer&&<p className="correct-answer">คำตอบที่ถูกต้อง: <b>{feedback.answer}</b></p>}{feedback.points!==undefined&&<div className="points-earned">+{feedback.points} คะแนน</div>}<button className="primary" onClick={continueTurn}>{position>=23||turn>=12?'สรุปผลการผจญภัย':'เดินทางต่อ'} <ArrowRight size={17}/></button></div></div>}
+        <p className="disclaimer">ภารกิจเป็นสถานการณ์จำลองเพื่อการเรียนรู้ ไม่ใช่คำแนะนำในการวินิจฉัยหรือรักษาผู้ป่วย</p>
+      </section>}
+
+      {phase==='result' && <section className="result-screen">
+        <div className="result-trophy">🏆</div><div className="eyebrow">ADVENTURE COMPLETED</div><h1>{position>=23?'ภารกิจสำเร็จ!':'จบการเดินทาง!'}</h1><p className="result-subtitle">{position>=23?'คุณเดินทางถึง Innovation Core แล้ว':'คุณทำภารกิจได้ดี ลองเล่นอีกครั้งเพื่อไปให้ถึงเส้นชัย'}</p>
+        <div className="result-score"><small>คะแนนรวม</small><strong>{score.toLocaleString('th-TH')}</strong><span>POINTS</span></div>
+        <div className="result-grid"><div><b>{turn}</b><small>เทิร์นที่ใช้</small></div><div><b>{position+1}/24</b><small>ช่องที่เดินทางถึง</small></div><div><b>{badges.length}/4</b><small>Zone Badges</small></div></div>
+        <div className="earned-badges">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z} className={badges.includes(z)?'earned':'locked'}><ZIcon size={17}/>{z}</span>;})}</div>
+        <div className="result-actions"><button className="primary" onClick={begin}><RotateCcw size={17}/> เล่นอีกครั้ง</button><button className="secondary" onClick={restart}>กลับหน้าแรก</button></div>
+        <p className="disclaimer">คะแนนนี้เป็นคะแนนในอุปกรณ์และรอบการเล่นนี้ ยังไม่ถูกส่งขึ้น Leaderboard ออนไลน์</p>
+      </section>}
     </main>
-    <footer><span>HEALTH TECH ARCADE</span><span>PLAY • LEARN • EXPLORE</span><button onClick={reset}><RotateCcw size={13}/> รีเซ็ตคะแนน</button></footer>
+    <footer><span>HEALTH TECH ADVENTURE</span><span>PLAY • LEARN • EXPLORE</span><span>EDUCATIONAL GAME</span></footer>
   </div>;
 }
