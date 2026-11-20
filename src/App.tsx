@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import { Activity, ArrowRight, Brain, CheckCircle2, Clock3, Dices, HeartPulse, Lightbulb, Map, RotateCcw, Sparkles, Star, Trophy, Wrench, XCircle } from 'lucide-react';
 
 type Zone = 'ER HERO' | 'BODY SCANNER' | 'MEDTECH ENGINEER' | 'INNOVATION LAB';
@@ -75,9 +76,16 @@ export default function App() {
   const [questionIndex,setQuestionIndex] = useState<number|null>(null);
   const [feedback,setFeedback] = useState<Feedback|null>(null);
   const [startedAt,setStartedAt] = useState<number>(0);
+  const [selectedZone,setSelectedZone] = useState<Zone>('ER HERO');
+  const [redemptionToken,setRedemptionToken] = useState('');
+  const [redemptionQr,setRedemptionQr] = useState('');
+  const [qrError,setQrError] = useState('');
   const moveTimer = useRef<number|undefined>(undefined);
 
   const currentZone = zoneForTile(position);
+  const focusZone = selectedZone || currentZone;
+  const zoneDescriptions = ['ฝึกเลือกใช้อุปกรณ์ติดตามสัญญาณชีพและอุปกรณ์ฉุกเฉิน','สำรวจหลักการสร้างภาพทางการแพทย์ เช่น X-ray, CT, MRI และ Ultrasound','ทำความเข้าใจเซนเซอร์ วงจร และระบบอิเล็กทรอนิกส์ในเครื่องมือแพทย์','ประยุกต์ใช้ IoT และข้อมูลเซนเซอร์เพื่อสร้างนวัตกรรมสุขภาพ'];
+  const zoneMissions = ['VITAL SIGNS • EMERGENCY DEVICES','MEDICAL IMAGING • SCANNING','SENSORS • ELECTRONICS • SAFETY','IoT • PROTOTYPING • INNOVATION'];
   const progress = Math.round((position/(tiles.length-1))*100);
   const boardRows = useMemo(()=>Array.from({length:6},(_,row)=>Array.from({length:4},(_,col)=>{
     const index = row%2===0 ? row*4+col : row*4+(3-col);
@@ -88,7 +96,7 @@ export default function App() {
     window.clearTimeout(moveTimer.current);
     setPosition(0); setTurn(0); setScore(0); setStreak(0); setBadges([]); setUsed([]);
     setDie(null); setQuestion(null); setQuestionIndex(null); setFeedback(null);
-    setStartedAt(Date.now()); setRolling(false); setPhase('playing');
+    setStartedAt(Date.now()); setRolling(false); setSelectedZone('ER HERO'); setRedemptionToken(''); setRedemptionQr(''); setQrError(''); setPhase('playing');
   };
 
   const endGame = () => { setQuestion(null); setFeedback(null); setRolling(false); setPhase('result'); };
@@ -134,6 +142,18 @@ export default function App() {
       };
       advance(position);
     },520);
+  };
+
+  const issueRedemptionPass = async () => {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    const token = Array.from(bytes,byte=>byte.toString(16).padStart(2,'0')).join('').toUpperCase();
+    setRedemptionToken(token);
+    setQrError('');
+    try {
+      const dataUrl = await QRCode.toDataURL('HTA-DEMO:'+token,{width:220,margin:2,errorCorrectionLevel:'M',color:{dark:'#071827',light:'#FFFFFF'}});
+      setRedemptionQr(dataUrl);
+    } catch { setQrError('ไม่สามารถสร้าง QR ได้ กรุณาลองอีกครั้ง'); }
   };
 
   const answer = (choice:number) => {
@@ -197,23 +217,24 @@ export default function App() {
             <div className="board-progress"><i style={{width:progress+'%'}}/></div>
             <div className="facility-map">
               <div className="map-status"><span><i/> FACILITY NETWORK</span><b>4 SECTORS • 24 NODES</b></div>
-              <div className="sector-grid">{zones.map((zone,zoneIndex)=>{const ZIcon=zoneIcons[zoneIndex];const sectorTiles=tiles.filter(tile=>tile.zone===zone);return <section key={zone} className={'sector-room sector-'+zoneIndex} style={{'--zone-color':zoneColors[zoneIndex]} as React.CSSProperties}>
-                <div className="sector-heading"><span className="sector-icon"><ZIcon size={17}/></span><div><b>{zone}</b><small>SECTOR 0{zoneIndex+1} // {badges.includes(zone)?'RESTORED':'STANDBY'}</small></div><span className="sector-state">{badges.includes(zone)?'● ONLINE':'○ LOCKED'}</span></div>
-                <div className="sector-nodes">{sectorTiles.map(tile=><div key={tile.id} className={'board-tile '+tile.kind+(position===tile.id?' active':'')+(tile.id<position?' visited':'')} style={{'--zone-color':zoneColors[zoneIndex]} as React.CSSProperties}>
+              <div className="sector-grid">{zones.map((zone,zoneIndex)=>{const ZIcon=zoneIcons[zoneIndex];const sectorTiles=tiles.filter(tile=>tile.zone===zone);return <button type="button" key={zone} className={'sector-room sector-'+zoneIndex+(focusZone===zone?' selected':'')+(currentZone===zone?' occupied':'')} onClick={()=>setSelectedZone(zone)} style={{'--zone-color':zoneColors[zoneIndex]} as React.CSSProperties} aria-pressed={focusZone===zone}>
+                <div className="sector-heading"><span className="sector-icon"><ZIcon size={17}/></span><div><b>{zone}</b><small>SECTOR 0{zoneIndex+1} // {badges.includes(zone)?'RESTORED':'STANDBY'}</small></div><span className="sector-state">{badges.includes(zone)?'● ONLINE':'○ READY'}</span></div>
+                <div className="sector-nodes">{sectorTiles.map(tile=><span key={tile.id} className={'board-tile '+tile.kind+(position===tile.id?' active':'')+(tile.id<position?' visited':'')} style={{'--zone-color':zoneColors[zoneIndex]} as React.CSSProperties}>
                   <span className="tile-number">{tile.id===0?'ENTRY':tile.id===23?'CORE':String(tile.id).padStart(2,'0')}</span><span className="tile-symbol">{kindSymbols[tile.kind]}</span>{position===tile.id&&<span className="player-token">🧑‍🚀</span>}
-                </div>)}</div>
-              </section>;})}</div>
+                </span>)}</div>
+                <span className="sector-action">{currentZone===zone?'CURRENT LOCATION':'TAP TO INSPECT'}</span>
+              </button>;})}</div>
               <div className="map-route"><span>ENTRY GATE</span><i/><span>MEDTECH CORE</span></div>
             </div>
             <div className="zone-legend">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z}><i style={{background:zoneColors[i]}}/><ZIcon size={13}/>{z}</span>;})}</div>
           </div>
           <aside className="side-panel">
-            <div className="zone-card"><div className="eyebrow">ACTIVE SECTOR // {String(zones.indexOf(currentZone)+1).padStart(2,'0')}</div><h3>{currentZone}</h3><p>{['เลือกใช้อุปกรณ์ให้เหมาะกับสถานการณ์','สำรวจเทคโนโลยีภาพวินิจฉัย','เรียนรู้ส่วนประกอบและระบบอิเล็กทรอนิกส์','ประยุกต์ความรู้สู่การสร้างนวัตกรรม'][zones.indexOf(currentZone)]}</p></div>
+            <div className="zone-card"><div className="eyebrow">{focusZone===currentZone?'ACTIVE SECTOR':'SECTOR INTEL'} // {String(zones.indexOf(focusZone)+1).padStart(2,'0')}</div><h3>{focusZone}</h3><p>{zoneDescriptions[zones.indexOf(focusZone)]}</p><small className="zone-mission">{zoneMissions[zones.indexOf(focusZone)]}</small>{focusZone!==currentZone&&<small className="zone-hint">เลือกโซนเพื่อดูข้อมูลเท่านั้น การเดินทางยังใช้ลูกเต๋า</small>}</div>
             <div className="dice-card"><div className="eyebrow">NAVIGATION MODULE</div><div className={'dice-face'+(rolling?' rolling':'')}>{rolling?'🎲':die?['⚀','⚁','⚂','⚃'][die-1]:'🎲'}</div><p>{rolling?'กำลังเคลื่อนย้ายหน่วยปฏิบัติการ...':die?'ผลการสุ่ม: '+die+' sectors':'รอคำสั่งเริ่มเคลื่อนที่'}</p><button className="primary roll-button" onClick={roll} disabled={rolling||!!question||!!feedback}>{rolling?'กำลังเคลื่อนที่...':'INITIATE MOVE'} <Dices size={18}/></button></div>
             <div className="badge-card"><div className="eyebrow">ZONE BADGES</div><div className="badge-list">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z} className={badges.includes(z)?'earned':''}><ZIcon size={16}/><small>{z}</small>{badges.includes(z)&&<CheckCircle2 size={13}/>}</span>;})}</div></div>
           </aside>
         </div>
-        {question && <div className="modal-backdrop"><div className="mission-modal"><div className="modal-top"><span className="eyebrow"><Sparkles size={13}/> {question.zone} • MISSION</span><span className="challenge-label">{tiles[position].kind.toUpperCase()}</span></div><h2>{question.question}</h2><div className="option-list">{question.options.map((opt,i)=><button key={opt} className="option-button" onClick={()=>answer(i)}><b>{String.fromCharCode(65+i)}</b>{opt}<ArrowRight size={15}/></button>)}</div><p className="modal-note">ตอบถูก รับ 100 คะแนน • คำถามสุ่มและไม่ซ้ำภายในรอบนี้</p></div></div>}
+        {question && <div className="modal-backdrop"><div className="mission-modal"><div className="mission-scan"><div className="scan-beam"/><div className="mission-device">{question.zone==='ER HERO'?<Activity size={38}/>:question.zone==='BODY SCANNER'?<Brain size={38}/>:question.zone==='MEDTECH ENGINEER'?<Wrench size={38}/>:<Lightbulb size={38}/>}</div><span>SCANNING SECTOR // {question.zone}</span></div><div className="modal-top"><span className="eyebrow"><Sparkles size={13}/> {question.zone} • MISSION</span><span className="challenge-label">{tiles[position].kind.toUpperCase()}</span></div><h2>{question.question}</h2><div className="option-list">{question.options.map((opt,i)=><button key={opt} className="option-button" onClick={()=>answer(i)}><b>{String.fromCharCode(65+i)}</b>{opt}<ArrowRight size={15}/></button>)}</div><p className="modal-note">ตอบถูก รับ 100 คะแนน • คำถามสุ่มและไม่ซ้ำภายในรอบนี้</p></div></div>}
         {feedback && <div className="modal-backdrop"><div className="feedback-modal"><div className={'feedback-icon '+(feedback.correct===false?'incorrect':'')}>{feedback.correct===false?<XCircle size={30}/>:feedback.points?<Star size={30}/>:<CheckCircle2 size={30}/>}</div><div className="eyebrow">QUEST UPDATE</div><h2>{feedback.title}</h2><p>{feedback.body}</p>{feedback.answer&&<p className="correct-answer">คำตอบที่ถูกต้อง: <b>{feedback.answer}</b></p>}{feedback.points!==undefined&&<div className="points-earned">+{feedback.points} คะแนน</div>}<button className="primary" onClick={continueTurn}>{position>=23||turn>=12?'สรุปผลการผจญภัย':'เดินทางต่อ'} <ArrowRight size={17}/></button></div></div>}
         <p className="disclaimer">ภารกิจเป็นสถานการณ์จำลองเพื่อการเรียนรู้ ไม่ใช่คำแนะนำในการวินิจฉัยหรือรักษาผู้ป่วย</p>
       </section>}
@@ -223,6 +244,16 @@ export default function App() {
         <div className="result-score"><small>คะแนนรวม</small><strong>{score.toLocaleString('th-TH')}</strong><span>POINTS</span></div>
         <div className="result-grid"><div><b>{turn}</b><small>เทิร์นที่ใช้</small></div><div><b>{position+1}/24</b><small>ช่องที่เดินทางถึง</small></div><div><b>{badges.length}/4</b><small>Zone Badges</small></div></div>
         <div className="earned-badges">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z} className={badges.includes(z)?'earned':'locked'}><ZIcon size={17}/>{z}</span>;})}</div>
+        <div className="redemption-panel">
+          <div className="eyebrow"><Trophy size={14}/> BOOTH REDEMPTION PASS</div>
+          <h2>รับสิทธิ์เข้าร่วมกิจกรรมที่บูธ</h2>
+          <p>สร้าง QR Pass ประจำรอบนี้ แล้วแสดงให้เจ้าหน้าที่ประจำบูธตรวจสอบ</p>
+          {!redemptionToken&&<button className="primary" onClick={issueRedemptionPass}>สร้าง QR สำหรับแลกรับสิทธิ์ <ArrowRight size={16}/></button>}
+          {redemptionQr&&<div className="qr-pass"><img src={redemptionQr} alt="QR Pass สำหรับต้นแบบแลกรับสิทธิ์"/><b>{redemptionToken}</b><small>DEMO TOKEN • ใช้ทดสอบหน้าจอเท่านั้น</small></div>}
+          {qrError&&<p className="qr-error">{qrError}</p>}
+          {redemptionToken&&<button className="secondary" onClick={issueRedemptionPass}>สร้างรหัสใหม่</button>}
+          <p className="qr-warning">หมายเหตุ: QR นี้เป็นต้นแบบที่สร้างในอุปกรณ์ ยังไม่ใช่สิทธิ์แบบใช้ครั้งเดียวที่ตรวจสอบจากเซิร์ฟเวอร์ ต้องเชื่อมต่อ Backend และระบบสแกนของเจ้าหน้าที่ก่อนใช้งานจริง</p>
+        </div>
         <div className="result-actions"><button className="primary" onClick={begin}><RotateCcw size={17}/> เล่นอีกครั้ง</button><button className="secondary" onClick={restart}>กลับหน้าแรก</button></div>
         <p className="disclaimer">คะแนนนี้เป็นคะแนนในอุปกรณ์และรอบการเล่นนี้ ยังไม่ถูกส่งขึ้น Leaderboard ออนไลน์</p>
       </section>}
