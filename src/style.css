@@ -33,3 +33,22 @@ body{background:radial-gradient(ellipse at 78% 12%,#123d57 0,transparent 34%),ra
 .disclaimer{color:#5f91a2}.result-screen{background:linear-gradient(145deg,#102b42,#0a172a);border-color:#2d7188;box-shadow:0 0 50px #00c8ed16}.result-score{background:#081a2d;border-color:#27617a}.result-score strong{color:#5deaff;text-shadow:0 0 20px #22dfff55}footer{border-color:#1d5266;color:#5e899a}
 @keyframes spin{to{transform:rotate(360deg)}}@keyframes spin-reverse{to{transform:rotate(-360deg)}}@keyframes core-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media(max-width:760px){.intro{grid-template-columns:1fr;padding:32px 0 42px;gap:22px}.cyber-scene{min-height:420px;padding:14px}.holo-stage{height:300px}.ring-one{width:220px;height:220px}.ring-two{width:175px;height:175px}.ring-three{width:270px;height:90px}.holo-core{width:125px;height:125px}.orbit-node{width:58px;height:58px}.node-a{left:5%;top:13%}.node-b{right:5%;top:13%}.node-c{right:15%;bottom:9%}.scene-readout{grid-template-columns:1fr 1fr auto}.scene-readout b{font-size:8px}.scene-topline,.scene-bottomline{font-size:7px}.quest-head h1{font-size:20px}}
+
+/* FACILITY MAP: four connected medical technology sectors */
+.facility-map{position:relative;padding:13px;border:1px solid #1d6078;border-radius:12px;background:radial-gradient(ellipse at center,#10334a 0, #081a2b 75%);overflow:hidden}
+.facility-map:before{content:'';position:absolute;inset:0;background:linear-gradient(#3bdcf008 1px,transparent 1px),linear-gradient(90deg,#3bdcf008 1px,transparent 1px);background-size:22px 22px;pointer-events:none}
+.map-status,.map-route{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;color:#69b7c9;font-size:8px;letter-spacing:.12em}
+.map-status span{display:flex;align-items:center;gap:7px}.map-status i{width:6px;height:6px;border-radius:50%;background:#65f2c3;box-shadow:0 0 9px #65f2c3}.map-status b{font-size:8px;color:#8eddeb}
+.sector-grid{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.sector-room{min-width:0;padding:10px;border:1px solid color-mix(in srgb,var(--zone-color) 52%,#183d55);border-radius:10px;background:linear-gradient(145deg,#102b40eF,#091a2ceF);box-shadow:inset 0 0 22px color-mix(in srgb,var(--zone-color) 9%,transparent)}
+.sector-heading{display:flex;align-items:center;gap:7px;margin-bottom:9px;min-width:0}.sector-icon{width:29px;height:29px;display:grid;place-items:center;flex:none;border:1px solid color-mix(in srgb,var(--zone-color) 65%,transparent);border-radius:8px;color:var(--zone-color);background:#071725}
+.sector-heading>div{display:flex;flex-direction:column;min-width:0;gap:2px}.sector-heading b{font-size:9px;letter-spacing:.06em;color:#e1faff;white-space:nowrap}.sector-heading small{font-size:6px;color:#76a9b9;letter-spacing:.08em}.sector-state{margin-left:auto;white-space:nowrap;font-size:6px;color:var(--zone-color);letter-spacing:.06em}
+.sector-nodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.sector-nodes .board-tile{min-height:61px;aspect-ratio:1.2;border-color:color-mix(in srgb,var(--zone-color) 40%,#24465a);background:linear-gradient(145deg,#12354b,#0a1d30)}
+.sector-nodes .board-tile:before{background:var(--zone-color)}
+.sector-nodes .board-tile.visited:not(.active){filter:saturate(.65);opacity:.76}
+.sector-nodes .tile-symbol{font-size:18px}.sector-nodes .tile-number{font-size:7px}
+.sector-nodes .board-tile.active{transform:scale(1.045);z-index:2}
+.map-route{justify-content:center;gap:10px;padding-top:7px;border-top:1px solid #1a5268;color:#70a9b8}.map-route i{width:34px;height:1px;background:linear-gradient(90deg,#5ceaff,#a98cff);box-shadow:0 0 8px #5ceaff}
+@media(max-width:760px){.facility-map{padding:9px}.sector-grid{gap:7px}.sector-room{padding:7px}.sector-heading{gap:5px}.sector-icon{width:25px;height:25px}.sector-heading b{font-size:8px}.sector-heading small{font-size:5px}.sector-state{font-size:5px}.sector-nodes{gap:4px}.sector-nodes .board-tile{min-height:54px}.sector-nodes .tile-symbol{font-size:16px}.sector-nodes .tile-number{font-size:6px}}
+@media(max-width:390px){.sector-grid{grid-template-columns:1fr}.sector-nodes .board-tile{min-height:58px}}
