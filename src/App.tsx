@@ -164,18 +164,27 @@ export default function App() {
     </header>
     <main>
       {phase==='home' && <section className="intro">
-        <div className="hero-copy"><div className="eyebrow"><Sparkles size={14}/> DIGITAL BOARD GAME • SOLO MODE</div>
-          <h1>ออกผจญภัยในโลก<br/><span>HEALTH TECH</span></h1>
-          <p>ทอยลูกเต๋า เดินบนกระดาน ไขภารกิจเครื่องมือแพทย์ และสะสมตราความเชี่ยวชาญ เพื่อก้าวสู่ตำแหน่ง Health Tech Master</p>
-          <div className="intro-stats"><div><Clock3/><b>5–8 นาที</b><small>เวลาเล่นโดยประมาณ</small></div><div><Map/><b>24 ช่อง</b><small>เส้นทางผจญภัย</small></div><div><Trophy/><b>4 เขต</b><small>สะสม Zone Badge</small></div></div>
-          <button className="primary start-button" onClick={begin}>เริ่มการผจญภัย <ArrowRight size={18}/></button>
-          <p className="micro-note">เล่นคนเดียว • ไม่ต้องสมัครสมาชิก • รองรับมือถือ</p>
+        <div className="hero-copy"><div className="eyebrow"><Sparkles size={14}/> NEURO-LINK ESTABLISHED • SOLO OPERATION</div>
+          <h1>ภารกิจช่วยชีวิต<br/><span>เริ่มต้นที่นี่</span></h1>
+          <p>ระบบ Medical AI ตรวจพบสัญญาณผิดปกติในศูนย์วิจัย คุณคือ MedTech Operative คนเดียวที่ต้องเปิดใช้งานอุปกรณ์ วิเคราะห์ข้อมูล และกู้คืนระบบทั้ง 4 โซน</p>
+          <div className="intro-stats"><div><Clock3/><b>5–8 นาที</b><small>MISSION TIME</small></div><div><Map/><b>4 ZONES</b><small>RESEARCH SECTORS</small></div><div><Trophy/><b>12 TURNS</b><small>OPERATION LIMIT</small></div></div>
+          <button className="primary start-button" onClick={begin}>เริ่มปฏิบัติการ <ArrowRight size={18}/></button>
+          <p className="micro-note">ไม่ต้องสมัครสมาชิก • เล่นผ่านมือถือ • TRAINING SIMULATION</p>
         </div>
-        <div className="intro-board"><div className="mini-board-title">YOUR QUEST MAP <span>24 SPACES</span></div><div className="mini-path">{tiles.map(tile=><span key={tile.id} className={'mini-tile '+tile.kind}>{kindSymbols[tile.kind]}</span>)}</div><div className="map-legend"><span>💡 Knowledge</span><span>🧩 Mission</span><span>⭐ Bonus</span><span>🔥 Challenge</span></div></div>
+        <div className="cyber-scene">
+          <div className="scene-topline"><span><i/> SYSTEM ONLINE</span><span>MEDTECH FACILITY // 04</span></div>
+          <div className="holo-stage"><div className="scan-ring ring-one"/><div className="scan-ring ring-two"/><div className="scan-ring ring-three"/>
+            <div className="holo-core"><HeartPulse size={76}/><span>MED<br/>CORE</span></div>
+            <div className="orbit-node node-a"><Activity size={20}/><small>VITALS</small></div><div className="orbit-node node-b"><Brain size={20}/><small>IMAGING</small></div><div className="orbit-node node-c"><Wrench size={20}/><small>DEVICE</small></div>
+            <div className="scene-crosshair">+</div>
+          </div>
+          <div className="scene-readout"><div><small>FACILITY STATUS</small><b>CRITICAL SYSTEMS</b></div><div><small>MISSION PROGRESS</small><b>0 / 4 ZONES</b></div><div className="signal-bars"><i/><i/><i/><i/><i/></div></div>
+          <div className="scene-bottomline">SECURE CONNECTION <span>ENCRYPTED // 256-BIT</span></div>
+        </div>
       </section>}
 
       {phase==='playing' && <section className="quest-layout">
-        <div className="quest-head"><div><div className="eyebrow">YOUR ADVENTURE</div><h1>Health Tech Quest</h1><p>เดินทางผ่าน 4 เขต เพื่อพิชิต Final Mission</p></div><button className="exit-btn" onClick={restart}><RotateCcw size={15}/> ออกจากเกม</button></div>
+        <div className="quest-head"><div><div className="eyebrow">OPERATION CONTROL // LIVE FEED</div><h1>MEDTECH FACILITY</h1><p>กู้คืนระบบทั้ง 4 โซน ก่อนพลังงานสำรองหมด</p></div><button className="exit-btn" onClick={restart}><RotateCcw size={15}/> ออกจากเกม</button></div>
         <div className="hud">
           <div className="hud-item"><small>คะแนน</small><b>{score.toLocaleString('th-TH')}</b></div>
           <div className="hud-item"><small>เทิร์น</small><b>{turn}/12</b></div>
@@ -184,7 +193,7 @@ export default function App() {
         </div>
         <div className="quest-columns">
           <div className="board-panel">
-            <div className="board-title"><span><Map size={17}/> ADVENTURE MAP</span><span>{progress}% COMPLETE</span></div>
+            <div className="board-title"><span><Activity size={17}/> HOLOGRAPHIC SECTOR MAP</span><span>SYNC {progress}%</span></div>
             <div className="board-progress"><i style={{width:progress+'%'}}/></div>
             <div className="board-grid">{boardRows.map((row,r)=><div className="board-row" key={r}>{row.map(tile=><div key={tile.id} className={'board-tile '+tile.kind+(position===tile.id?' active':'')} style={{'--zone-color':zoneColors[zones.indexOf(tile.zone)]} as React.CSSProperties}>
               <span className="tile-number">{tile.id===0?'START':tile.id===23?'FINISH':String(tile.id).padStart(2,'0')}</span><span className="tile-symbol">{kindSymbols[tile.kind]}</span>{position===tile.id&&<span className="player-token">🧑‍🚀</span>}
@@ -192,8 +201,8 @@ export default function App() {
             <div className="zone-legend">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z}><i style={{background:zoneColors[i]}}/><ZIcon size={13}/>{z}</span>;})}</div>
           </div>
           <aside className="side-panel">
-            <div className="zone-card"><div className="eyebrow">CURRENT ZONE</div><h3>{currentZone}</h3><p>{['เลือกใช้อุปกรณ์ให้เหมาะกับสถานการณ์','สำรวจเทคโนโลยีภาพวินิจฉัย','เรียนรู้ส่วนประกอบและระบบอิเล็กทรอนิกส์','ประยุกต์ความรู้สู่การสร้างนวัตกรรม'][zones.indexOf(currentZone)]}</p></div>
-            <div className="dice-card"><div className={'dice-face'+(rolling?' rolling':'')}>{rolling?'🎲':die?['⚀','⚁','⚂','⚃'][die-1]:'🎲'}</div><p>{rolling?'กำลังเดินตัวหมาก...':die?'ทอยได้ '+die+' ช่อง':'พร้อมออกเดินทาง?'}</p><button className="primary roll-button" onClick={roll} disabled={rolling||!!question||!!feedback}>{rolling?'กำลังเคลื่อนที่...':'ทอยลูกเต๋า'} <Dices size={18}/></button></div>
+            <div className="zone-card"><div className="eyebrow">ACTIVE SECTOR // {String(zones.indexOf(currentZone)+1).padStart(2,'0')}</div><h3>{currentZone}</h3><p>{['เลือกใช้อุปกรณ์ให้เหมาะกับสถานการณ์','สำรวจเทคโนโลยีภาพวินิจฉัย','เรียนรู้ส่วนประกอบและระบบอิเล็กทรอนิกส์','ประยุกต์ความรู้สู่การสร้างนวัตกรรม'][zones.indexOf(currentZone)]}</p></div>
+            <div className="dice-card"><div className="eyebrow">NAVIGATION MODULE</div><div className={'dice-face'+(rolling?' rolling':'')}>{rolling?'🎲':die?['⚀','⚁','⚂','⚃'][die-1]:'🎲'}</div><p>{rolling?'กำลังเคลื่อนย้ายหน่วยปฏิบัติการ...':die?'ผลการสุ่ม: '+die+' sectors':'รอคำสั่งเริ่มเคลื่อนที่'}</p><button className="primary roll-button" onClick={roll} disabled={rolling||!!question||!!feedback}>{rolling?'กำลังเคลื่อนที่...':'INITIATE MOVE'} <Dices size={18}/></button></div>
             <div className="badge-card"><div className="eyebrow">ZONE BADGES</div><div className="badge-list">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z} className={badges.includes(z)?'earned':''}><ZIcon size={16}/><small>{z}</small>{badges.includes(z)&&<CheckCircle2 size={13}/>}</span>;})}</div></div>
           </aside>
         </div>
