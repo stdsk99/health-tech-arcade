@@ -179,7 +179,7 @@ export default function App() {
             <div className="scene-crosshair">+</div>
           </div>
           <div className="scene-readout"><div><small>FACILITY STATUS</small><b>CRITICAL SYSTEMS</b></div><div><small>MISSION PROGRESS</small><b>0 / 4 ZONES</b></div><div className="signal-bars"><i/><i/><i/><i/><i/></div></div>
-          <div className="scene-bottomline">SECURE CONNECTION <span>ENCRYPTED // 256-BIT</span></div>
+          <div className="scene-bottomline">SIMULATION LINK <span>TRAINING MODE // ACTIVE</span></div>
         </div>
       </section>}
 
@@ -195,9 +195,16 @@ export default function App() {
           <div className="board-panel">
             <div className="board-title"><span><Activity size={17}/> HOLOGRAPHIC SECTOR MAP</span><span>SYNC {progress}%</span></div>
             <div className="board-progress"><i style={{width:progress+'%'}}/></div>
-            <div className="board-grid">{boardRows.map((row,r)=><div className="board-row" key={r}>{row.map(tile=><div key={tile.id} className={'board-tile '+tile.kind+(position===tile.id?' active':'')} style={{'--zone-color':zoneColors[zones.indexOf(tile.zone)]} as React.CSSProperties}>
-              <span className="tile-number">{tile.id===0?'START':tile.id===23?'FINISH':String(tile.id).padStart(2,'0')}</span><span className="tile-symbol">{kindSymbols[tile.kind]}</span>{position===tile.id&&<span className="player-token">🧑‍🚀</span>}
-            </div>)}</div>)}</div>
+            <div className="facility-map">
+              <div className="map-status"><span><i/> FACILITY NETWORK</span><b>4 SECTORS • 24 NODES</b></div>
+              <div className="sector-grid">{zones.map((zone,zoneIndex)=>{const ZIcon=zoneIcons[zoneIndex];const sectorTiles=tiles.filter(tile=>tile.zone===zone);return <section key={zone} className={'sector-room sector-'+zoneIndex} style={{'--zone-color':zoneColors[zoneIndex]} as React.CSSProperties}>
+                <div className="sector-heading"><span className="sector-icon"><ZIcon size={17}/></span><div><b>{zone}</b><small>SECTOR 0{zoneIndex+1} // {badges.includes(zone)?'RESTORED':'STANDBY'}</small></div><span className="sector-state">{badges.includes(zone)?'● ONLINE':'○ LOCKED'}</span></div>
+                <div className="sector-nodes">{sectorTiles.map(tile=><div key={tile.id} className={'board-tile '+tile.kind+(position===tile.id?' active':'')+(tile.id<position?' visited':'')} style={{'--zone-color':zoneColors[zoneIndex]} as React.CSSProperties}>
+                  <span className="tile-number">{tile.id===0?'ENTRY':tile.id===23?'CORE':String(tile.id).padStart(2,'0')}</span><span className="tile-symbol">{kindSymbols[tile.kind]}</span>{position===tile.id&&<span className="player-token">🧑‍🚀</span>}
+                </div>)}</div>
+              </section>;})}</div>
+              <div className="map-route"><span>ENTRY GATE</span><i/><span>MEDTECH CORE</span></div>
+            </div>
             <div className="zone-legend">{zones.map((z,i)=>{const ZIcon=zoneIcons[i];return <span key={z}><i style={{background:zoneColors[i]}}/><ZIcon size={13}/>{z}</span>;})}</div>
           </div>
           <aside className="side-panel">
