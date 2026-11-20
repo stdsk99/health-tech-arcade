@@ -52,3 +52,20 @@ body{background:radial-gradient(ellipse at 78% 12%,#123d57 0,transparent 34%),ra
 .map-route{justify-content:center;gap:10px;padding-top:7px;border-top:1px solid #1a5268;color:#70a9b8}.map-route i{width:34px;height:1px;background:linear-gradient(90deg,#5ceaff,#a98cff);box-shadow:0 0 8px #5ceaff}
 @media(max-width:760px){.facility-map{padding:9px}.sector-grid{gap:7px}.sector-room{padding:7px}.sector-heading{gap:5px}.sector-icon{width:25px;height:25px}.sector-heading b{font-size:8px}.sector-heading small{font-size:5px}.sector-state{font-size:5px}.sector-nodes{gap:4px}.sector-nodes .board-tile{min-height:54px}.sector-nodes .tile-symbol{font-size:16px}.sector-nodes .tile-number{font-size:6px}}
 @media(max-width:390px){.sector-grid{grid-template-columns:1fr}.sector-nodes .board-tile{min-height:58px}}
+
+/* Interactive sector selection and mission visual feedback */
+.sector-room{width:100%;text-align:left;color:inherit;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;appearance:none;font:inherit}
+.sector-room:hover,.sector-room.selected{border-color:var(--zone-color);box-shadow:0 0 20px color-mix(in srgb,var(--zone-color) 25%,transparent),inset 0 0 22px color-mix(in srgb,var(--zone-color) 12%,transparent);transform:translateY(-2px)}
+.sector-room.occupied .sector-heading:after{content:'YOU ARE HERE';font-size:6px;color:#6fffd0;letter-spacing:.08em}
+.sector-room:focus-visible{outline:2px solid #7ceeff;outline-offset:3px}
+.sector-action{display:block;margin-top:8px;text-align:right;font-size:6px;letter-spacing:.1em;color:var(--zone-color);opacity:.8}
+.zone-mission{display:block;margin-top:10px;color:#66ddec;font-size:8px;letter-spacing:.06em;line-height:1.5}
+.zone-hint{display:block;margin-top:7px;color:#e6bd7a;font-size:8px;line-height:1.5}
+.mission-scan{height:112px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;margin:-5px 0 13px;border:1px solid #28657b;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at center,#164b62,#091a2c 70%)}
+.mission-scan:before,.mission-scan:after{content:'';position:absolute;inset:10px 25%;border:1px solid #47e7ff55;border-radius:50%;animation:scan-pulse 2.1s ease-out infinite}
+.mission-scan:after{animation-delay:1s}.mission-device{z-index:1;color:#72f1ff;filter:drop-shadow(0 0 13px #2ce6ff);animation:device-hover 2s ease-in-out infinite}.mission-scan>span{z-index:1;font-size:7px;letter-spacing:.14em;color:#8acbd9}
+.scan-beam{position:absolute;left:0;right:0;height:2px;top:0;background:linear-gradient(90deg,transparent,#60f3ff,transparent);box-shadow:0 0 15px #60f3ff;animation:scan-sweep 2.8s linear infinite}
+@keyframes scan-sweep{to{top:100%}}@keyframes scan-pulse{0%{transform:scale(.65);opacity:.7}100%{transform:scale(1.3);opacity:0}}@keyframes device-hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.redemption-panel{margin:24px auto 12px;padding:18px;max-width:430px;border:1px solid #2a7188;border-radius:15px;background:linear-gradient(145deg,#0e2b40,#091829);text-align:center}
+.redemption-panel h2{font-size:17px;margin:10px 0 5px}.redemption-panel>p{font-size:10px;color:#94b8c8;line-height:1.7}.qr-pass{display:flex;flex-direction:column;align-items:center;gap:7px;margin:15px auto;padding:12px;width:max-content;max-width:100%;background:#fff;border-radius:10px;color:#102437}.qr-pass img{width:190px;height:190px;object-fit:contain}.qr-pass b{font:700 12px monospace;letter-spacing:.12em}.qr-pass small{font-size:8px;color:#526575}.qr-warning{margin:12px 0 0!important;color:#e7bd7c!important;font-size:9px!important}.qr-error{color:#ff9ca9!important}
+@media(max-width:390px){.sector-room.occupied .sector-heading:after{display:none}.redemption-panel{padding:12px}.qr-pass img{width:165px;height:165px}}
