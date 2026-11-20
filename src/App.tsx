@@ -43,9 +43,9 @@ const questions: Question[] = [
 ];
 
 const tileKinds: TileKind[] = ['start','knowledge','mission','bonus','knowledge','event','challenge','knowledge','mission','bonus','knowledge','event','challenge','knowledge','mission','bonus','knowledge','event','challenge','knowledge','mission','bonus','challenge','final'];
-const tiles: Tile[] = tileKinds.map((kind, id) => ({ id, kind, zone: zones[Math.min(3, Math.floor(Math.max(0,id-1)/6))] }));
+const tiles: Tile[] = tileKinds.map((kind, id) => ({ id, kind, zone: zones[Math.min(3, Math.floor(id/6))] }));
 const kindSymbols: Record<TileKind,string> = { start:'🚩', knowledge:'💡', mission:'🧩', bonus:'⭐', event:'⚡', challenge:'🔥', final:'🏆' };
-const zoneForTile = (id:number) => zones[Math.min(3,Math.floor(Math.max(0,id-1)/6))];
+const zoneForTile = (id:number) => zones[Math.min(3,Math.floor(id/6))];
 
 // Prefer a question from the current zone, then draw from the remaining bank.
 // Questions are never repeated during the same run, and answer positions are shuffled.
